@@ -2,7 +2,30 @@ import pandas as pd
 from sqlalchemy import URL, create_engine, text
 import config
 
-def create_database_tables():
+def create_database():
+
+    base_url = URL.create(
+        drivername="postgresql+psycopg2",
+        username=config.DB_USER,
+        password=config.DB_PASSWORD,
+        host=config.DB_HOST,
+        port=config.DB_PORT,
+        database="postgres"
+    )
+    
+    try:
+        sys_engine = create_engine(base_url, isolation_level="AUTOCOMMIT")
+        with sys_engine.connect() as conn:
+            result = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname='{config.DB_NAME}'"))
+            if not result.fetchone():
+                conn.execute(text(f"CREATE DATABASE {config.DB_NAME}"))
+                print(f"Baza danych '{config.DB_NAME}' została utworzona")
+            else:
+                print(f"Baza danych '{config.DB_NAME}' już istnieje. Sprawdzanie tabel.")
+    except Exception as e:
+        print(f"Błąd podczas próby sprawdzenia/tworzenia bazy danych: {e}")
+        return
+    
     db_url = URL.create(
         drivername="postgresql+psycopg2",
         username=config.DB_USER,
@@ -38,6 +61,7 @@ def create_database_tables():
             wind_speed NUMERIC(4, 1),
             weather_code INT,
             CONSTRAINT fk_location FOREIGN KEY (location_id) REFERENCES locations(id),
+            CONSTRAINT fk_weather_code FOREIGN KEY (weather_code) REFERENCES dict_weather_code(weather_code),
             CONSTRAINT unique_location_time UNIQUE (location_id, measurement_time)
         );
 
@@ -83,4 +107,4 @@ def create_database_tables():
         print(f"Błąd podczas operacji na bazie danych: {e}")
 
 if __name__ == "__main__":
-    create_database_tables()
+    create_database()
