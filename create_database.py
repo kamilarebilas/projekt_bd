@@ -97,11 +97,52 @@ def create_database():
         );
         """)
 
+        insert_initial_data_query = text("""
+        INSERT INTO locations (id, city_name, latitude, longitude) 
+        VALUES (1, 'Kraków', 50.06, 19.94)
+        ON CONFLICT (id) DO NOTHING;
+
+        INSERT INTO dict_weather_code (weather_code, description) 
+        VALUES
+            (0, 'Czyste niebo'),
+            (1, 'Przeważnie czyste niebo'),
+            (2, 'Częściowe zachmurzenie'),
+            (3, 'Zachmurzenie całkowite'),
+            (45, 'Mgła'),
+            (48, 'Osadzająca się mgła szronowa'),
+            (51, 'Mżawka: lekka'),
+            (53, 'Mżawka: umiarkowana'),
+            (55, 'Mżawka: intensywna'),
+            (56, 'Marznąca mżawka: lekka'),
+            (57, 'Marznąca mżawka: intensywna'),
+            (61, 'Deszcz: słaby'),
+            (63, 'Deszcz: umiarkowany'),
+            (65, 'Deszcz: silny'),
+            (66, 'Marznący deszcz: lekki'),
+            (67, 'Marznący deszcz: silny'),
+            (71, 'Opady śniegu: słabe'),
+            (73, 'Opady śniegu: umiarkowane'),
+            (75, 'Opady śniegu: silne'),
+            (77, 'Ziarna śniegu'),
+            (80, 'Przelatujący deszcz: słaby'),
+            (81, 'Przelatujący deszcz: umiarkowany'),
+            (82, 'Przelatujący deszcz: gwałtowny'),
+            (85, 'Przelatujący śnieg: słaby'),
+            (86, 'Przelatujący śnieg: silny'),
+            (95, 'Burza: lekka lub umiarkowana'),
+            (96, 'Burza z gradem: lekka'),
+            (99, 'Burza z gradem: ciężka')
+        ON CONFLICT (weather_code) DO NOTHING;
+        """)
+
         with engine.connect() as connection:
             print("Pomyślnie nawiązano połączenie z bazą danych.")
             connection.execute(create_tables_query)
             connection.commit()
             print("Wszystkie tabele zostały pomyślnie utworzone")
+            connection.execute(insert_initial_data_query)
+            connection.commit()
+            print("Dane startowe zostały pomyślnie dodane")
 
     except Exception as e:
         print(f"Błąd podczas operacji na bazie danych: {e}")
