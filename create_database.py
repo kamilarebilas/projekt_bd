@@ -1,20 +1,12 @@
 import pandas as pd
-from sqlalchemy import URL, create_engine, text
+from sqlalchemy import text
 import config
+from db import get_admin_engine, get_engine
 
 def create_database():
-
-    base_url = URL.create(
-        drivername="postgresql+psycopg2",
-        username=config.DB_USER,
-        password=config.DB_PASSWORD,
-        host=config.DB_HOST,
-        port=config.DB_PORT,
-        database="postgres"
-    )
     
     try:
-        sys_engine = create_engine(base_url, isolation_level="AUTOCOMMIT")
+        sys_engine = get_admin_engine()
         with sys_engine.connect() as conn:
             result = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname='{config.DB_NAME}'"))
             if not result.fetchone():
@@ -26,17 +18,8 @@ def create_database():
         print(f"Błąd podczas próby sprawdzenia/tworzenia bazy danych: {e}")
         return
     
-    db_url = URL.create(
-        drivername="postgresql+psycopg2",
-        username=config.DB_USER,
-        password=config.DB_PASSWORD,
-        host=config.DB_HOST,
-        port=config.DB_PORT,
-        database=config.DB_NAME,
-    )
-
     try:
-        engine = create_engine(db_url)
+        engine = get_engine()
         
         create_tables_query = text("""
         CREATE TABLE IF NOT EXISTS dict_weather_code (
