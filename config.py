@@ -10,3 +10,15 @@ DB_PASSWORD = "postgres123"
 DB_HOST = "localhost"
 DB_PORT = 5432
 DB_NAME = "open_meteo_project"
+
+CITY_NAMES = [
+    "Kraków",
+    "Warszawa",
+    "Gdańsk",
+    "Wrocław",
+    "Zakopane",
+    "Berlin",
+    "Paryż",
+    "Londyn",
+    "Rzym",
+]

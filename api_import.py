@@ -4,9 +4,12 @@ from urllib.parse import urlencode
 from urllib.request import urlopen 
 from sqlalchemy import text 
 from db import get_engine 
+from config import CITY_NAMES
 
 WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast" 
 AIR_QUALITY_API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality" 
+GEOCODING_API_URL = "https://geocoding-api.open-meteo.com/v1/search"
+
 TIMEZONE = "Europe/Warsaw" 
 
 def fetch_json(url, params): 
@@ -42,6 +45,87 @@ def get_value(data, key, index):
     if index >= len(values): 
         return None 
     return values[index]
+
+
+def fetch_city_coordinates(city_name):
+    params = {
+        "name": city_name,
+        "count": 1,
+        "language": "pl",
+        "format": "json",
+    }
+
+    data = fetch_json(GEOCODING_API_URL, params)
+    results = data.get("results", [])
+
+    if not results:
+        print(f"Nie znaleziono miasta: {city_name}")
+        return None
+
+    city = results[0]
+
+    return {
+        "city_name": city.get("name", city_name),
+        "latitude": city.get("latitude"),
+        "longitude": city.get("longitude"),
+    }
+
+
+def save_location(engine, city_data):
+    select_query = text("""
+        SELECT id
+        FROM locations
+        WHERE city_name = :city_name;
+    """)
+
+    insert_query = text("""
+        INSERT INTO locations (
+            city_name,
+            latitude,
+            longitude
+        )
+        VALUES (
+            :city_name,
+            :latitude,
+            :longitude
+        );
+    """)
+
+    update_query = text("""
+        UPDATE locations
+        SET latitude = :latitude,
+            longitude = :longitude
+        WHERE id = :id;
+    """)
+
+    with engine.begin() as connection:
+        existing_location = connection.execute(select_query, {
+            "city_name": city_data["city_name"],
+        }).mappings().first()
+
+        if existing_location:
+            connection.execute(update_query, {
+                "id": existing_location["id"],
+                "latitude": city_data["latitude"],
+                "longitude": city_data["longitude"],
+            })
+        else:
+            connection.execute(insert_query, {
+                "city_name": city_data["city_name"],
+                "latitude": city_data["latitude"],
+                "longitude": city_data["longitude"],
+            })
+
+
+def sync_locations(engine):
+    for city_name in CITY_NAMES:
+        city_data = fetch_city_coordinates(city_name)
+
+        if city_data is None:
+            continue
+
+        save_location(engine, city_data)
+        print(f"Zapisano lokalizację: {city_data['city_name']}")
 
 
 def import_weather_data(engine, location):
@@ -234,3 +318,40 @@ def save_import_log(engine, status, records_added, error_message=None):
             "records_added": records_added,
             "error_message": error_message,
         })
+
+
+def run_import():
+    engine = get_engine()
+    records_added = 0
+
+    try:
+        sync_locations(engine)
+        locations = get_locations(engine)
+
+        if not locations:
+            raise RuntimeError("Brak lokalizacji w tabeli locations.")
+
+        for location in locations:
+            print(f"Import danych dla lokalizacji: {location['city_name']}")
+
+            records_added += import_weather_data(engine, location)
+            records_added += import_air_quality_data(engine, location)
+
+        save_import_log(
+            engine=engine,
+            status="SUCCESS",
+            records_added=records_added,
+        )
+
+        print(f"Import zakończony. Rekordy: {records_added}")
+
+    except Exception as error:
+        save_import_log(
+            engine=engine,
+            status="FAILED",
+            records_added=records_added,
+            error_message=str(error),
+        )
+
+        print(f"Błąd importu: {error}")
+        raise
