@@ -1,6 +1,6 @@
-INSERT INTO locations (city_name, latitude, longitude)
-VALUES ('Kraków', 50,06, 19,94)
-ON CONFLICT DO NOTHING;
+INSERT INTO locations (id, city_name, latitude, longitude)
+VALUES (1, 'Kraków', 50.06, 19.94)
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO dict_weather_code (weather_code, description) VALUES
 (0, 'Czyste niebo'),

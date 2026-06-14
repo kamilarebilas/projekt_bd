@@ -156,6 +156,7 @@ def import_weather_data(engine, location):
 
     return records_count
 
+
 def import_air_quality_data(engine, location):
     params = {
         "latitude": location["latitude"],
@@ -211,3 +212,25 @@ def import_air_quality_data(engine, location):
             records_count += 1
 
     return records_count
+
+
+def save_import_log(engine, status, records_added, error_message=None):
+    query = text("""
+        INSERT INTO import_log (
+            status,
+            records_added,
+            error_message
+        )
+        VALUES (
+            :status,
+            :records_added,
+            :error_message
+        );
+    """)
+
+    with engine.begin() as connection:
+        connection.execute(query, {
+            "status": status,
+            "records_added": records_added,
+            "error_message": error_message,
+        })
