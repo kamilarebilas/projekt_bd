@@ -155,3 +155,59 @@ def import_weather_data(engine, location):
             records_count += 1
 
     return records_count
+
+def import_air_quality_data(engine, location):
+    params = {
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "timezone": TIMEZONE,
+        "forecast_days": 3,
+        "hourly": ",".join([
+            "pm10",
+            "pm2_5",
+            "european_aqi",
+        ]),
+    }
+
+    data = fetch_json(AIR_QUALITY_API_URL, params)
+
+    hourly = data.get("hourly", {})
+    hourly_times = hourly.get("time", [])
+
+    insert_air_quality = text("""
+        INSERT INTO air_quality (
+            location_id,
+            measurement_time,
+            pm10,
+            pm2_5,
+            aqi
+        )
+        VALUES (
+            :location_id,
+            :measurement_time,
+            :pm10,
+            :pm2_5,
+            :aqi
+        )
+        ON CONFLICT (location_id, measurement_time)
+        DO UPDATE SET
+            pm10 = EXCLUDED.pm10,
+            pm2_5 = EXCLUDED.pm2_5,
+            aqi = EXCLUDED.aqi;
+    """)
+
+    records_count = 0
+
+    with engine.begin() as connection:
+        for i, measurement_time in enumerate(hourly_times):
+            connection.execute(insert_air_quality, {
+                "location_id": location["id"],
+                "measurement_time": measurement_time,
+                "pm10": get_value(hourly, "pm10", i),
+                "pm2_5": get_value(hourly, "pm2_5", i),
+                "aqi": get_value(hourly, "european_aqi", i),
+            })
+
+            records_count += 1
+
+    return records_count
