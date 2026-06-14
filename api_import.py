@@ -355,3 +355,16 @@ def run_import():
 
         print(f"Błąd importu: {error}")
         raise
+
+
+def run_scheduler(interval_minutes=60):
+    print(f"Start importu cyklicznego. Interwał: {interval_minutes} min.")
+
+    while True:
+        try:
+            run_import()
+        except Exception as error:
+            print(f"Import zakończony błędem: {error}")
+
+        print(f"Następny import za {interval_minutes} min.")
+        time.sleep(interval_minutes * 60)
