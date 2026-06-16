@@ -1,9 +1,13 @@
 import argparse
-
+from create_database import create_database
 from api_import import run_import, run_scheduler
 
 
+
 def main():
+
+    create_database()
+
     parser = argparse.ArgumentParser(
         description="Import danych z Open-Meteo API do bazy PostgreSQL."
     )
