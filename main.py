@@ -1,3 +1,7 @@
+
+import os
+os.environ["PGPASSFILE"] = "NUL"
+
 import argparse
 from create_database import create_database
 from api_import import run_import, run_scheduler

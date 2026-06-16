@@ -1,3 +1,4 @@
+import traceback
 import pandas as pd
 from sqlalchemy import text
 import config
@@ -16,6 +17,7 @@ def create_database():
                 print(f"Baza danych '{config.DB_NAME}' już istnieje. Sprawdzanie tabel.")
     except Exception as e:
         print(f"Błąd podczas próby sprawdzenia/tworzenia bazy danych: {e}")
+        traceback.print_exc()
         return
     
     try:

@@ -13,7 +13,10 @@ def get_admin_engine():
         database="postgres",
     )
 
-    return create_engine(base_url, isolation_level="AUTOCOMMIT")
+    return create_engine(
+        base_url,
+        isolation_level="AUTOCOMMIT",
+    )
 
 
 def get_engine():
@@ -26,4 +29,6 @@ def get_engine():
         database=config.DB_NAME,
     )
 
-    return create_engine(db_url)
+    return create_engine(
+        db_url,
+    )
