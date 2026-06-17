@@ -182,10 +182,27 @@ if data_type == "Godzinowe":
     if hourly_df.empty:
         st.info("Brak danych dla wybranych filtrów.")
     else:
+        # Temperature chart
         st.subheader("🌡️ Temperatura w czasie (°C)")
         chart_df = hourly_df[["measurement_time", "temperature"]].dropna().set_index("measurement_time")
         chart_df.columns = ["Temperatura (°C)"]
         st.line_chart(chart_df, use_container_width=True)
+
+        # Rain and wind charts
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("🌧️ Opady (mm)")
+            rain_df = hourly_df[["measurement_time", "rain"]].dropna().set_index("measurement_time")
+            rain_df.columns = ["Opady (mm)"]
+            st.bar_chart(rain_df, use_container_width=True)
+
+        with col2:
+            st.subheader("💨 Prędkość wiatru (km/h)")
+            wind_df = hourly_df[["measurement_time", "wind_speed"]].dropna().set_index("measurement_time")
+            wind_df.columns = ["Wiatr (km/h)"]
+            st.line_chart(wind_df, use_container_width=True)
+
         st.subheader("📋 Dane godzinowe")
         st.dataframe(hourly_df, use_container_width=True)
 
