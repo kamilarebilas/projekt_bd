@@ -4,11 +4,7 @@ Projekt polega na automatycznym pobieraniu danych pogodowych i jakości powietrz
 
 ---
 
-## Skład zespołu
 
-- **Osoba 1** — baza danych, ERD, zapytania SQL
-- **Osoba 2** — import danych z API, logowanie, obsługa błędów
-- **Osoba 3** — dashboard, filtry, raport końcowy
 
 ---
 
