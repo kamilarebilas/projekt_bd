@@ -176,6 +176,24 @@ if not air_df.empty:
 
 st.subheader(f"📍 {selected_city}")
 
+# ── Summary tiles ────────────────────────────────────────────────────────────
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+current_temp = hourly_df["temperature"].dropna().iloc[-1] if not hourly_df.empty and hourly_df["temperature"].notna().any() else None
+max_temp     = hourly_df["temperature"].max() if not hourly_df.empty and hourly_df["temperature"].notna().any() else None
+total_rain   = hourly_df["rain"].sum() if not hourly_df.empty and hourly_df["rain"].notna().any() else None
+max_wind     = hourly_df["wind_speed"].max() if not hourly_df.empty and hourly_df["wind_speed"].notna().any() else None
+avg_aqi      = air_df["aqi"].mean() if not air_df.empty and air_df["aqi"].notna().any() else None
+
+col1.metric("🌡️ Aktualna temp.", f"{current_temp:.1f} °C" if current_temp is not None else "—")
+col2.metric("🔥 Maks. temp.",     f"{max_temp:.1f} °C"     if max_temp     is not None else "—")
+col3.metric("🌧️ Suma opadów",    f"{total_rain:.1f} mm"   if total_rain   is not None else "—")
+col4.metric("💨 Maks. wiatr",     f"{max_wind:.1f} km/h"  if max_wind     is not None else "—")
+col5.metric("😷 Średni AQI",      f"{avg_aqi:.0f}"         if avg_aqi      is not None else "—")
+
+st.divider()
+
 if data_type == "Godzinowe":
     st.caption(f"Rekordów: {len(hourly_df)}")
     if hourly_df.empty:
