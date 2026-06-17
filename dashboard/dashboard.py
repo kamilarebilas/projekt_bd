@@ -128,8 +128,11 @@ max_pm10 = st.sidebar.slider("12. Maks. PM10 (µg/m³)", 0.0, 500.0, 500.0, step
 # ── Load data ────────────────────────────────────────────────────────────────
 
 hourly_df = load_data("""
-    SELECT measurement_time, temperature, humidity, rain, wind_speed, weather_code
-    FROM weather_hourly WHERE location_id = :lid ORDER BY measurement_time
+    SELECT w.measurement_time, w.temperature, w.humidity, w.rain, w.wind_speed,
+           COALESCE(d.description, w.weather_code::text) AS weather_code
+    FROM weather_hourly w
+    LEFT JOIN dict_weather_code d ON w.weather_code = d.weather_code
+    WHERE w.location_id = :lid ORDER BY w.measurement_time
 """, {"lid": location_id})
 
 daily_df = load_data("""
@@ -191,6 +194,48 @@ col2.metric("🔥 Maks. temp.",     f"{max_temp:.1f} °C"     if max_temp     is
 col3.metric("🌧️ Suma opadów",    f"{total_rain:.1f} mm"   if total_rain   is not None else "—")
 col4.metric("💨 Maks. wiatr",     f"{max_wind:.1f} km/h"  if max_wind     is not None else "—")
 col5.metric("😷 Średni AQI",      f"{avg_aqi:.0f}"         if avg_aqi      is not None else "—")
+
+# ── Alerts ───────────────────────────────────────────────────────────────────
+
+SEVERE_CODES = {65, 82, 95, 96, 99}
+
+if not hourly_df.empty:
+    alerts_df = hourly_df[
+        (hourly_df["wind_speed"].notna() & (hourly_df["wind_speed"] > 25)) |
+        (hourly_df["temperature"].notna() & (hourly_df["temperature"] < 0))
+    ].copy()
+
+    # also flag severe weather codes (stored as description now, match by original codes via re-query)
+    severe_hourly = load_data("""
+        SELECT w.measurement_time, w.temperature, w.wind_speed,
+               COALESCE(d.description, w.weather_code::text) AS weather_code
+        FROM weather_hourly w
+        LEFT JOIN dict_weather_code d ON w.weather_code = d.weather_code
+        WHERE w.location_id = :lid
+          AND w.weather_code IN (65, 82, 95, 96, 99)
+          AND w.measurement_time::date >= :dfrom
+          AND w.measurement_time::date <= :dto
+        ORDER BY w.measurement_time
+    """, {"lid": location_id, "dfrom": date_from, "dto": date_to})
+
+    has_threshold_alerts = not alerts_df.empty
+    has_severe = not severe_hourly.empty
+
+    if not has_threshold_alerts and not has_severe:
+        st.success("✅ Brak alertów pogodowych dla wybranego okresu.")
+    else:
+        if has_threshold_alerts:
+            st.warning(f"⚠️ Wykryto {len(alerts_df)} rekordów z przekroczeniem progów (wiatr > 25 km/h lub temperatura < 0°C):")
+            alert_display = alerts_df[["measurement_time", "temperature", "wind_speed", "weather_code"]].copy()
+            alert_display.columns = ["Czas", "Temperatura (°C)", "Wiatr (km/h)", "Stan pogody"]
+            st.dataframe(alert_display, use_container_width=True, hide_index=True)
+        if has_severe:
+            st.error(f"🚨 Wykryto {len(severe_hourly)} rekordów z niebezpiecznymi zjawiskami pogodowymi:")
+            severe_display = severe_hourly.copy()
+            severe_display.columns = ["Czas", "Temperatura (°C)", "Wiatr (km/h)", "Stan pogody"]
+            st.dataframe(severe_display, use_container_width=True, hide_index=True)
+else:
+    st.info("Brak danych do sprawdzenia alertów.")
 
 st.divider()
 
