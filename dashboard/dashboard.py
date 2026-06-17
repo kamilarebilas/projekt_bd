@@ -87,6 +87,7 @@ st.sidebar.divider()
 
 # Filters 5–6 — Temperature
 temp_range = st.sidebar.slider("5–6. Temperatura (°C)", -40.0, 50.0, (-40.0, 50.0), step=0.5, key="temp")
+show_temp_limit = st.sidebar.checkbox("Pokaż linię limitu temperatury", value=False, key="show_temp")
 
 st.sidebar.divider()
 
@@ -150,9 +151,7 @@ if not hourly_df.empty:
         (hourly_df["measurement_time"].dt.date <= date_to) &
         (hourly_df["measurement_time"].dt.hour >= hour_range[0]) &
         (hourly_df["measurement_time"].dt.hour <= hour_range[1]) &
-        (hourly_df["temperature"].isna() | hourly_df["temperature"].between(temp_range[0], temp_range[1])) &
-        (hourly_df["rain"].isna() | (hourly_df["rain"] <= max_rain)) &
-        (hourly_df["wind_speed"].isna() | (hourly_df["wind_speed"] <= max_wind))
+        (hourly_df["rain"].isna() | (hourly_df["rain"] <= max_rain))
     ]
     if selected_code is not None:
         hourly_df = hourly_df[hourly_df["weather_code"] == selected_code]
@@ -182,13 +181,16 @@ if data_type == "Godzinowe":
     if hourly_df.empty:
         st.info("Brak danych dla wybranych filtrów.")
     else:
-        # Temperature chart
+        # Temperature chart with reference lines
         st.subheader("🌡️ Temperatura w czasie (°C)")
-        chart_df = hourly_df[["measurement_time", "temperature"]].dropna().set_index("measurement_time")
-        chart_df.columns = ["Temperatura (°C)"]
-        st.line_chart(chart_df, use_container_width=True)
+        temp_chart = hourly_df[["measurement_time", "temperature"]].dropna().set_index("measurement_time")
+        temp_chart.columns = ["Temperatura (°C)"]
+        if show_temp_limit:
+            temp_chart["Limit max (°C)"] = temp_range[1]
+            temp_chart["Limit min (°C)"] = temp_range[0]
+        st.line_chart(temp_chart, use_container_width=True)
 
-        # Rain and wind charts
+        # Rain and wind charts side by side
         col1, col2 = st.columns(2)
 
         with col1:
@@ -201,7 +203,27 @@ if data_type == "Godzinowe":
             st.subheader("💨 Prędkość wiatru (km/h)")
             wind_df = hourly_df[["measurement_time", "wind_speed"]].dropna().set_index("measurement_time")
             wind_df.columns = ["Wiatr (km/h)"]
+            wind_df["Limit (km/h)"] = max_wind
             st.line_chart(wind_df, use_container_width=True)
+
+        # Air quality charts
+        if not air_df.empty:
+            st.subheader("🌫️ AQI w czasie")
+            aqi_chart = air_df[["measurement_time", "aqi"]].dropna().set_index("measurement_time")
+            aqi_chart.columns = ["AQI"]
+            st.line_chart(aqi_chart, use_container_width=True)
+
+            col3, col4 = st.columns(2)
+            with col3:
+                st.subheader("🔬 PM2.5 (µg/m³)")
+                pm25_chart = air_df[["measurement_time", "pm2_5"]].dropna().set_index("measurement_time")
+                pm25_chart.columns = ["PM2.5 (µg/m³)"]
+                st.line_chart(pm25_chart, use_container_width=True)
+            with col4:
+                st.subheader("🔬 PM10 (µg/m³)")
+                pm10_chart = air_df[["measurement_time", "pm10"]].dropna().set_index("measurement_time")
+                pm10_chart.columns = ["PM10 (µg/m³)"]
+                st.line_chart(pm10_chart, use_container_width=True)
 
         st.subheader("📋 Dane godzinowe")
         st.dataframe(hourly_df, use_container_width=True)
@@ -223,4 +245,26 @@ else:
     if air_df.empty:
         st.info("Brak danych dla wybranych filtrów.")
     else:
+        # AQI chart
+        st.subheader("🌫️ AQI w czasie")
+        aqi_chart = air_df[["measurement_time", "aqi"]].dropna().set_index("measurement_time")
+        aqi_chart.columns = ["AQI"]
+        st.line_chart(aqi_chart, use_container_width=True)
+
+        # PM2.5 and PM10 charts side by side
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("🔬 PM2.5 (µg/m³)")
+            pm25_chart = air_df[["measurement_time", "pm2_5"]].dropna().set_index("measurement_time")
+            pm25_chart.columns = ["PM2.5 (µg/m³)"]
+            st.line_chart(pm25_chart, use_container_width=True)
+
+        with col2:
+            st.subheader("🔬 PM10 (µg/m³)")
+            pm10_chart = air_df[["measurement_time", "pm10"]].dropna().set_index("measurement_time")
+            pm10_chart.columns = ["PM10 (µg/m³)"]
+            st.line_chart(pm10_chart, use_container_width=True)
+
+        st.subheader("📋 Dane jakości powietrza")
         st.dataframe(air_df, use_container_width=True)
