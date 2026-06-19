@@ -100,6 +100,28 @@ Przy pierwszym uruchomieniu skrypt automatycznie tworzy bazę danych i wszystkie
 
 ---
 
+## Uruchomienie zapytań analitycznych
+
+Plik `queries.py` zawiera przygotowane zapytania SQL analizujące dane zapisane w bazie PostgreSQL.
+
+Aby uruchomić raporty:
+
+```bash
+python queries.py
+```
+
+Po uruchomieniu w terminalu zostaną wyświetlone raporty:
+
+* aktualny przegląd pogody,
+* prognoza dzienna,
+* alerty i anomalie pogodowe,
+* średnie dobowe zanieczyszczenie powietrza,
+* statystyki techniczne systemu importu.
+
+Raporty korzystają z tabel `weather_hourly`, `weather_daily`, `air_quality`, `locations`, `dict_weather_code` oraz `import_log`.
+
+---
+
 ## Uruchomienie dashboardu
 
 ```bash

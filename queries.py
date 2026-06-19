@@ -1,5 +1,6 @@
 import pandas as pd
 from sqlalchemy import text
+from db import get_engine
 
 query_current_weather = text("""
     SELECT 
@@ -79,7 +80,7 @@ def run_analytical_reports(engine):
     for title, query in reports.items():
         print(title)
         try:
-            df = pd.read_sql(text(query), engine)
+            df = pd.read_sql(query, engine)
             if df.empty:
                 print("Brak danych w bazie do wygenerowania tego raportu")
             else:
@@ -87,4 +88,7 @@ def run_analytical_reports(engine):
         except Exception as e:
             print(f"Nie udało się wykonać zapytania: {e}")
 
-            
+
+if __name__ == "__main__":
+    engine = get_engine()
+    run_analytical_reports(engine)
